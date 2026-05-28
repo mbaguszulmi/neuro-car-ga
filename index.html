@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Self-Driving Car Simulation with Genetic Algorithm</title>
+  <!-- Google Fonts for great UI -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="src/css/style.css">
+</head>
+<body>
+  <!-- NAVIGATION -->
+  <nav class="navbar">
+    <div class="nav-logo" id="logo-btn">🏎️ AI Self-Driving Car</div>
+    <div class="nav-links">
+      <button class="nav-link active" id="home-nav-btn">Home</button>
+      <button class="nav-link" id="training-nav-btn">Training Mode</button>
+      <button class="nav-link" id="testing-nav-btn">Testing Mode</button>
+    </div>
+  </nav>
+
+  <!-- HOME PAGE -->
+  <section class="page active" id="home-page">
+    <div class="hero-container">
+      <h1 class="hero-title">Evolving Self-Driving Cars</h1>
+      <p class="hero-subtitle">Watch a neural network learn to navigate challenging 2D environments autonomously using a Genetic Algorithm (GA).</p>
+      
+      <div class="peas-grid">
+        <div class="peas-card">
+          <div class="peas-icon">🎯</div>
+          <h3>Performance (P)</h3>
+          <p>Drive from Point A to Point B safely and quickly without crashing into road boundaries.</p>
+        </div>
+        <div class="peas-card">
+          <div class="peas-icon">🛣️</div>
+          <h3>Environment (E)</h3>
+          <p>Choose from 3 unique customizable road profiles: Straight Highway, S-Curve Circuit, or the intense Grand Prix Challenge.</p>
+        </div>
+        <div class="peas-card">
+          <div class="peas-icon">🎮</div>
+          <h3>Actuators (A)</h3>
+          <p>Precision control of real-time Throttle (0 to 1), Brake (0 to 1), and Steering angle (-1 to 1).</p>
+        </div>
+        <div class="peas-card">
+          <div class="peas-icon">📡</div>
+          <h3>Sensors (S)</h3>
+          <p>5 ray-casting distance sensors spanning the front field of view to measure distance to the road boundaries.</p>
+        </div>
+      </div>
+
+      <div class="cta-buttons">
+        <button class="btn btn-primary btn-lg" id="start-training-btn">Start Training Mode</button>
+        <button class="btn btn-secondary btn-lg" id="start-testing-btn">Start Testing Mode</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRAINING PAGE -->
+  <section class="page" id="training-page">
+    <div class="workspace">
+      <!-- CONTROL SIDEBAR -->
+      <aside class="sidebar">
+        <h2>Training Parameters</h2>
+        
+        <div class="form-group">
+          <label for="road-select-training">Select Track:</label>
+          <select id="road-select-training" class="form-control">
+            <!-- Loaded dynamically via JS -->
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="pop-size">Population Size:</label>
+          <input type="number" id="pop-size" class="form-control" value="100" readonly>
+          <small>Standard size optimized for smooth execution in 2D space</small>
+        </div>
+
+        <div class="form-group">
+          <label for="mutation-rate">Mutation Rate: <span id="mutation-val">15%</span></label>
+          <input type="range" id="mutation-rate" min="1" max="50" value="15" class="slider">
+        </div>
+
+        <div class="form-group">
+          <label>Seed Weight Mode:</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="seed-mode" value="random" checked> Random
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="seed-mode" value="import"> Import Model
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group hidden" id="import-training-container">
+          <label for="import-training-file" class="btn btn-secondary text-center">📂 Choose JSON Model File</label>
+          <input type="file" id="import-training-file" accept=".json" style="display:none;">
+          <div class="file-name" id="import-training-filename">No model loaded</div>
+        </div>
+
+        <div class="button-row">
+          <button class="btn btn-success" id="run-training-btn">🚀 Start Training</button>
+          <button class="btn btn-danger hidden" id="pause-training-btn">⏸️ Pause</button>
+        </div>
+
+        <div class="button-row mt-2">
+          <button class="btn btn-secondary" id="reset-training-btn">🔄 Reset</button>
+          <button class="btn btn-info" id="export-training-btn" disabled>📥 Export Best Model</button>
+        </div>
+
+        <div class="stats-panel mt-4">
+          <h3>Simulation Stats</h3>
+          <div class="stat-row">
+            <span>Generation:</span>
+            <span id="stat-gen" class="stat-val">1</span>
+          </div>
+          <div class="stat-row">
+            <span>Cars Alive:</span>
+            <span id="stat-alive" class="stat-val">0/100</span>
+          </div>
+          <div class="stat-row">
+            <span>Best Fitness:</span>
+            <span id="stat-fitness" class="stat-val">0</span>
+          </div>
+          <div class="stat-row">
+            <span>Best Distance:</span>
+            <span id="stat-distance" class="stat-val">0m</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- SIMULATION VIEWPORT -->
+      <main class="simulation-container">
+        <div class="canvas-wrapper">
+          <canvas id="training-canvas"></canvas>
+        </div>
+      </main>
+
+      <!-- ANALYTICS PANEL -->
+      <aside class="analytics-panel">
+        <div class="analytics-box neural-net-box">
+          <h3>Active Brain (Best Car)</h3>
+          <div class="canvas-wrapper-visualizer">
+            <canvas id="network-canvas"></canvas>
+          </div>
+        </div>
+        <div class="analytics-box chart-box">
+          <h3>GA Learning Curve (Max Fitness)</h3>
+          <div class="canvas-wrapper-visualizer">
+            <canvas id="chart-canvas"></canvas>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- TESTING PAGE -->
+  <section class="page" id="testing-page">
+    <div class="workspace">
+      <!-- TESTING SIDEBAR -->
+      <aside class="sidebar">
+        <h2>Testing Dashboard</h2>
+        
+        <div class="info-card">
+          <p>Test your trained models in real-time. First, import a saved JSON brain, choose a testing road, and watch it drive!</p>
+        </div>
+
+        <div class="form-group mt-3">
+          <label for="import-testing-file" class="btn btn-primary text-center">📥 Import Saved JSON Model</label>
+          <input type="file" id="import-testing-file" accept=".json" style="display:none;">
+          <div class="file-name" id="import-testing-filename">No model imported yet</div>
+        </div>
+
+        <div class="form-group">
+          <label for="road-select-testing">Select Test Track:</label>
+          <select id="road-select-testing" class="form-control" disabled>
+            <!-- Loaded dynamically via JS -->
+          </select>
+        </div>
+
+        <div class="button-row">
+          <button class="btn btn-success" id="run-testing-btn" disabled>🏎️ Launch Evaluation</button>
+          <button class="btn btn-danger hidden" id="stop-testing-btn">🛑 Stop</button>
+        </div>
+
+        <div class="stats-panel mt-4">
+          <h3>Performance Metrics</h3>
+          <div class="stat-row">
+            <span>Velocity:</span>
+            <span id="test-stat-speed" class="stat-val">0.0 km/h</span>
+          </div>
+          <div class="stat-row">
+            <span>Controls:</span>
+            <span id="test-stat-controls" class="stat-val">-</span>
+          </div>
+          <div class="stat-row">
+            <span>Status:</span>
+            <span id="test-stat-status" class="stat-val">Standby</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- EVALUATION VIEWPORT -->
+      <main class="simulation-container">
+        <div class="canvas-wrapper">
+          <canvas id="testing-canvas"></canvas>
+        </div>
+      </main>
+
+      <!-- LIVE BRAIN VISUALIZER -->
+      <aside class="analytics-panel">
+        <div class="analytics-box neural-net-box-full">
+          <h3>Active Brain Telemetry</h3>
+          <div class="canvas-wrapper-visualizer">
+            <canvas id="testing-network-canvas"></canvas>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- SCRIPTS -->
+  <script src="src/js/network.js"></script>
+  <script src="src/js/sensor.js"></script>
+  <script src="src/js/car.js"></script>
+  <script src="src/js/road.js"></script>
+  <script src="src/js/ga.js"></script>
+  <script src="src/js/visualizer.js"></script>
+  <script src="src/js/main.js"></script>
+</body>
+</html>
