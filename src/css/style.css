@@ -210,6 +210,16 @@ body {
   background-color: #138496;
 }
 
+.btn-speed {
+  width: 100%;
+  background-color: #6f42c1;
+  color: #fff;
+}
+
+.btn-speed:hover {
+  background-color: #5a32a3;
+}
+
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -451,6 +461,7 @@ body {
 .canvas-wrapper-visualizer {
   flex: 1;
   width: 100%;
+  min-height: 220px;
   position: relative;
   background-color: #11131c;
   border-radius: 6px;
@@ -504,6 +515,7 @@ body {
 
   .analytics-box {
     flex: 1;
+    min-height: 300px;
   }
 }
 
@@ -524,6 +536,14 @@ body {
   .analytics-panel {
     flex-direction: column;
     height: auto;
+  }
+
+  .analytics-box {
+    min-height: 320px;
+  }
+
+  .canvas-wrapper-visualizer {
+    min-height: 260px;
   }
 
   .simulation-container {

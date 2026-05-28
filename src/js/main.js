@@ -11,6 +11,9 @@ let trainingHistory = []; // stores max fitness per generation
 let trainingIsRunning = false;
 let trainingAnimId = null;
 let importedTrainingBrain = null;
+const trainingSpeedOptions = [1, 2, 5, 10];
+let trainingSpeedIndex = 0;
+let trainingSpeedMultiplier = trainingSpeedOptions[trainingSpeedIndex];
 
 // TESTING VARS
 let testingCar = null;
@@ -18,6 +21,9 @@ let testingRoad = null;
 let testingIsRunning = false;
 let testingAnimId = null;
 let importedTestingBrain = null;
+let testingStartTime = 0;
+let testingElapsedMs = 0;
+let testingTimerFinalized = true;
 
 // DOM ELEMENTS - NAVIGATION
 const homePage = document.getElementById("home-page");
@@ -43,6 +49,7 @@ const importTrainingFilename = document.getElementById("import-training-filename
 
 const runTrainingBtn = document.getElementById("run-training-btn");
 const pauseTrainingBtn = document.getElementById("pause-training-btn");
+const trainingSpeedBtn = document.getElementById("training-speed-btn");
 const resetTrainingBtn = document.getElementById("reset-training-btn");
 const exportTrainingBtn = document.getElementById("export-training-btn");
 
@@ -69,6 +76,7 @@ const stopTestingBtn = document.getElementById("stop-testing-btn");
 
 // DOM ELEMENTS - TESTING STATS
 const testStatSpeed = document.getElementById("test-stat-speed");
+const testStatElapsed = document.getElementById("test-stat-elapsed");
 const testStatControls = document.getElementById("test-stat-controls");
 const testStatStatus = document.getElementById("test-stat-status");
 
@@ -92,24 +100,53 @@ window.addEventListener("DOMContentLoaded", async () => {
 });
 
 // RESIZE CANVASES ON WINDOW CHANGE
-window.addEventListener("resize", resizeCanvases);
+window.addEventListener("resize", resizeAndRedrawActivePage);
 
 function resizeCanvases() {
   // Setup sizing for simulation canvases based on their wrappers
   [trainingCanvas, testingCanvas].forEach(canvas => {
     if (canvas && canvas.parentElement) {
+      const wrapperRect = canvas.parentElement.getBoundingClientRect();
       canvas.width = 400; // Fixed virtual width for standard physics & rendering coordination
-      canvas.height = canvas.parentElement.clientHeight;
+      canvas.height = Math.max(
+        1,
+        Math.round(wrapperRect.height || canvas.parentElement.clientHeight || 480)
+      );
     }
   });
 
   // Visualizer canvases
   [networkCanvas, chartCanvas, testingNetworkCanvas].forEach(canvas => {
     if (canvas && canvas.parentElement) {
-      canvas.width = canvas.parentElement.clientWidth;
-      canvas.height = canvas.parentElement.clientHeight;
+      const wrapperRect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.max(
+        1,
+        Math.round(wrapperRect.width || canvas.parentElement.clientWidth || 300)
+      );
+      canvas.height = Math.max(
+        1,
+        Math.round(wrapperRect.height || canvas.parentElement.clientHeight || 240)
+      );
     }
   });
+}
+
+function resizeAndRedrawActivePage() {
+  resizeCanvases();
+  redrawActivePage();
+}
+
+function resizeAndRedrawAfterLayout() {
+  requestAnimationFrame(resizeAndRedrawActivePage);
+}
+
+function redrawActivePage() {
+  if (trainingPage.classList.contains("active") && trainingBestCar && trainingRoad) {
+    drawTrainingFrame();
+  }
+  if (testingPage.classList.contains("active") && testingCar && testingRoad) {
+    drawTestingFrame();
+  }
 }
 
 // NAVIGATION CONTROLLERS
@@ -132,11 +169,13 @@ function setupNavigation() {
       trainingNavBtn.classList.add("active");
       resizeCanvases();
       initTrainingSimulation();
+      resizeAndRedrawAfterLayout();
     } else if (pageId === "testing") {
       testingPage.classList.add("active");
       testingNavBtn.classList.add("active");
       resizeCanvases();
       initTestingSimulation();
+      resizeAndRedrawAfterLayout();
     }
   };
 
@@ -214,8 +253,15 @@ function setupTrainingEventListeners() {
   // Control Buttons
   runTrainingBtn.addEventListener("click", startTraining);
   pauseTrainingBtn.addEventListener("click", pauseTraining);
+  trainingSpeedBtn.addEventListener("click", cycleTrainingSpeed);
   resetTrainingBtn.addEventListener("click", resetTraining);
   exportTrainingBtn.addEventListener("click", exportBestTrainingModel);
+}
+
+function cycleTrainingSpeed() {
+  trainingSpeedIndex = (trainingSpeedIndex + 1) % trainingSpeedOptions.length;
+  trainingSpeedMultiplier = trainingSpeedOptions[trainingSpeedIndex];
+  trainingSpeedBtn.textContent = `⏩ Speed: ${trainingSpeedMultiplier}x`;
 }
 
 function initTrainingSimulation() {
@@ -277,7 +323,9 @@ function animateTraining() {
   if (!trainingIsRunning) return;
 
   // Update simulation
-  updateTrainingSimulation();
+  for (let i = 0; i < trainingSpeedMultiplier && trainingIsRunning; i++) {
+    updateTrainingSimulation();
+  }
 
   // Draw simulation
   drawTrainingFrame();
@@ -466,8 +514,13 @@ function initTestingSimulation() {
 
   // Setup UI defaults
   testStatSpeed.textContent = "0.0 km/h";
+  testStatElapsed.textContent = "0.00s";
   testStatControls.textContent = "THR: 0% | BRK: 0% | STR: 0°";
   testStatStatus.textContent = "Standby (Ready)";
+  testStatStatus.style.color = "";
+  testingStartTime = 0;
+  testingElapsedMs = 0;
+  testingTimerFinalized = true;
 
   runTestingBtn.classList.remove("hidden");
   stopTestingBtn.classList.add("hidden");
@@ -477,28 +530,38 @@ function initTestingSimulation() {
 
 function startTesting() {
   if (testingIsRunning) return;
-  if (testingCar.damaged) {
+  if (testingCar.damaged || testingCar.finished) {
     testingCar.reset()
   }
 
   testingIsRunning = true;
+  testingStartTime = performance.now();
+  testingElapsedMs = 0;
+  testingTimerFinalized = false;
+  testStatElapsed.textContent = formatElapsedTime(testingElapsedMs);
   runTestingBtn.classList.add("hidden");
   stopTestingBtn.classList.remove("hidden");
   testStatStatus.textContent = "Evaluating...";
+  testStatStatus.style.color = "";
   animateTesting();
 }
 
 function stopTesting() {
   if (!testingIsRunning) return;
+  finalizeTestingTimer();
   testingIsRunning = false;
   runTestingBtn.classList.remove("hidden");
   stopTestingBtn.classList.add("hidden");
   cancelAnimationFrame(testingAnimId);
-  testStatStatus.textContent = "Evaluation Stopped";
+  if (!testingCar.finished && !testingCar.damaged) {
+    testStatStatus.textContent = "Evaluation Stopped";
+    testStatStatus.style.color = "";
+  }
 }
 
 function animateTesting() {
   if (!testingIsRunning) return;
+  updateTestingTimer();
 
   // Update
   testingCar.update(
@@ -534,6 +597,22 @@ function animateTesting() {
   drawTestingFrame();
 
   testingAnimId = requestAnimationFrame(animateTesting);
+}
+
+function updateTestingTimer() {
+  if (testingTimerFinalized) return;
+  testingElapsedMs = performance.now() - testingStartTime;
+  testStatElapsed.textContent = formatElapsedTime(testingElapsedMs);
+}
+
+function finalizeTestingTimer() {
+  if (testingTimerFinalized) return;
+  updateTestingTimer();
+  testingTimerFinalized = true;
+}
+
+function formatElapsedTime(ms) {
+  return `${(ms / 1000).toFixed(2)}s`;
 }
 
 function drawTestingFrame() {
