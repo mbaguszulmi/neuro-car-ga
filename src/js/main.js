@@ -11,6 +11,7 @@ let trainingHistory = []; // stores max fitness per generation
 let trainingIsRunning = false;
 let trainingAnimId = null;
 let importedTrainingBrain = null;
+let trainingPopulationSize = 100;
 const trainingSpeedOptions = [1, 2, 5, 10];
 let trainingSpeedIndex = 0;
 let trainingSpeedMultiplier = trainingSpeedOptions[trainingSpeedIndex];
@@ -40,6 +41,7 @@ const startTestingBtn = document.getElementById("start-testing-btn");
 
 // DOM ELEMENTS - TRAINING CONTROL PANEL
 const roadSelectTraining = document.getElementById("road-select-training");
+const populationSizeInput = document.getElementById("pop-size");
 const mutationRateSlider = document.getElementById("mutation-rate");
 const mutationValSpan = document.getElementById("mutation-val");
 const seedModeRadio = document.getElementsByName("seed-mode");
@@ -205,6 +207,18 @@ function populateRoadSelectors() {
 // --- TRAINING MODE LOGIC ---
 
 function setupTrainingEventListeners() {
+  // Population size control
+  populationSizeInput.addEventListener("input", (e) => {
+    const parsedValue = Number.parseInt(e.target.value, 10);
+    const normalizedValue = Number.isFinite(parsedValue) ? Math.min(500, Math.max(10, parsedValue)) : 100;
+    trainingPopulationSize = normalizedValue;
+    e.target.value = String(normalizedValue);
+
+    if (trainingGA && !trainingIsRunning) {
+      initTrainingSimulation();
+    }
+  });
+
   // Mutation Slider
   mutationRateSlider.addEventListener("input", (e) => {
     mutationValSpan.textContent = `${e.target.value}%`;
@@ -272,7 +286,8 @@ function initTrainingSimulation() {
   const roadData = roadsData.find(r => r.id === roadId) || roadsData[0];
   trainingRoad = new Road(roadData);
 
-  trainingGA = new GeneticAlgorithm(100, mutationRateSlider.value / 100);
+  trainingPopulationSize = Number.parseInt(populationSizeInput.value, 10) || 100;
+  trainingGA = new GeneticAlgorithm(trainingPopulationSize, mutationRateSlider.value / 100);
   
   // Base start location on the road's start point
   trainingCars = trainingGA.generatePopulation(
@@ -293,6 +308,7 @@ function initTrainingSimulation() {
   runTrainingBtn.classList.remove("hidden");
   pauseTrainingBtn.classList.add("hidden");
   exportTrainingBtn.disabled = true;
+  populationSizeInput.disabled = trainingIsRunning;
 
   drawTrainingFrame();
 }
@@ -300,6 +316,7 @@ function initTrainingSimulation() {
 function startTraining() {
   if (trainingIsRunning) return;
   trainingIsRunning = true;
+  populationSizeInput.disabled = true;
   runTrainingBtn.classList.add("hidden");
   pauseTrainingBtn.classList.remove("hidden");
   animateTraining();
@@ -308,6 +325,7 @@ function startTraining() {
 function pauseTraining() {
   if (!trainingIsRunning) return;
   trainingIsRunning = false;
+  populationSizeInput.disabled = false;
   runTrainingBtn.classList.remove("hidden");
   pauseTrainingBtn.classList.add("hidden");
   cancelAnimationFrame(trainingAnimId);
@@ -375,12 +393,14 @@ function updateTrainingSimulation() {
     // Auto-export / Switch to testing mode immediately
     alert(`Success! Car reached the finish line in generation ${trainingGA.generation}! Exporting model and switching to testing mode.`);
     
-    const brainJson = JSON.stringify(trainingBestCar.brain);
+    const exportedBrain = NeuralNetwork.clone(trainingBestCar.brain);
+    const brainJson = JSON.stringify(exportedBrain);
     downloadJSON(brainJson, `best_model_gen_${trainingGA.generation}.json`);
 
     // Preload testing brain automatically
-    importedTestingBrain = trainingBestCar.brain;
+    importedTestingBrain = exportedBrain;
     importTestingFilename.textContent = `best_model_gen_${trainingGA.generation}.json (Autoloaded)`;
+    roadSelectTesting.value = roadSelectTraining.value;
     roadSelectTesting.disabled = false;
     runTestingBtn.disabled = false;
 
@@ -507,9 +527,9 @@ function initTestingSimulation() {
   testingRoad = new Road(roadData);
 
   // Setup single testing car from loaded brain
-  testingCar = new Car(testingRoad.startPoint.x, testingRoad.startPoint.y, 30, 50, "AI", 4); // Testing car can go faster for performance display!
+  testingCar = new Car(testingRoad.startPoint.x, testingRoad.startPoint.y, 30, 50, "AI");
   if (importedTestingBrain) {
-    testingCar.brain = importedTestingBrain;
+    testingCar.brain = NeuralNetwork.clone(importedTestingBrain);
   }
 
   // Setup UI defaults

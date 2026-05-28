@@ -122,7 +122,7 @@ Use the navigation bar or page buttons to enter Training Mode or Testing Mode.
 Training Mode evolves a population of AI-controlled cars.
 
 1. Choose a track from the **Select Track** dropdown.
-2. Keep the fixed population size of `100`.
+2. Adjust the population size to trade off exploration against simulation speed.
 3. Choose a mutation rate from `1%` to `50%`. The default is `15%`.
 4. Choose a seed mode:
    - **Random**: every starting brain is randomly initialized.

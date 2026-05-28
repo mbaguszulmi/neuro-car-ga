@@ -74,8 +74,8 @@
 
         <div class="form-group">
           <label for="pop-size">Population Size:</label>
-          <input type="number" id="pop-size" class="form-control" value="100" readonly>
-          <small>Standard size optimized for smooth execution in 2D space</small>
+          <input type="number" id="pop-size" class="form-control" min="10" max="500" step="10" value="100">
+          <small>Higher values explore more candidates per generation but run slower.</small>
         </div>
 
         <div class="form-group">
