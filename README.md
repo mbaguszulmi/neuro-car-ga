@@ -31,14 +31,17 @@ The app runs entirely in the browser. There is no build step, package manager, b
   - New cars are created with crossover and mutation.
 - **Live telemetry**
   - Training stats include generation, cars alive, best fitness, and best distance.
-  - Testing stats include speed, control outputs, and status.
+  - Training speed can be cycled between `1x`, `2x`, `5x`, and `10x`.
+  - Testing stats include speed, elapsed time, control outputs, and status.
 - **Visualization**
   - Active neural-network graph.
   - GA learning curve chart based on maximum generation fitness.
+  - Responsive visualizer canvases for desktop and mobile layouts.
 - **Model portability**
   - Export the best trained brain as JSON.
   - Import JSON models into Training Mode as seed brains.
   - Import JSON models into Testing Mode for evaluation.
+  - Use the included `sample_models` files for quick Grand Prix Challenge testing.
 
 ---
 
@@ -48,6 +51,10 @@ The app runs entirely in the browser. There is no build step, package manager, b
 .
 ├── index.html
 ├── README.md
+├── sample_models
+│   ├── best.json
+│   ├── best_fast.json
+│   └── best_quick.json
 └── src
     ├── css
     │   └── style.css
@@ -66,6 +73,7 @@ The app runs entirely in the browser. There is no build step, package manager, b
 ### Main Files
 
 - `index.html` defines the Home, Training Mode, and Testing Mode pages and loads all scripts.
+- `sample_models/` contains ready-to-import trained models for Testing Mode.
 - `src/css/style.css` contains the responsive dark dashboard styling.
 - `src/data/roads.json` defines the available tracks.
 - `src/js/main.js` coordinates app state, navigation, event handlers, animation loops, imports, exports, and training/testing workflows.
@@ -120,8 +128,9 @@ Training Mode evolves a population of AI-controlled cars.
    - **Random**: every starting brain is randomly initialized.
    - **Import Model**: upload a JSON brain and use it as the base for the population.
 5. Click **Start Training**.
-6. Watch the best car, live brain visualizer, learning chart, and stats update in real time.
-7. Use **Pause**, **Reset**, or **Export Best Model** as needed.
+6. Use the **Speed** button to cycle training playback speed through `1x`, `2x`, `5x`, and `10x`.
+7. Watch the best car, live brain visualizer, learning chart, and stats update in real time.
+8. Use **Pause**, **Reset**, or **Export Best Model** as needed.
 
 When the best car gets within 50 pixels of the finish point, the app pauses training, downloads the winning model JSON, preloads it into Testing Mode, and switches to the testing screen.
 
@@ -132,9 +141,9 @@ Testing Mode evaluates one trained model on a selected track.
 1. Import a saved JSON model, unless a successful training run already autoloaded one.
 2. Choose a test track.
 3. Click **Launch Evaluation**.
-4. Watch the car drive with live velocity, control-output, status, and brain telemetry.
+4. Watch the car drive with live velocity, elapsed time, control-output, status, and brain telemetry.
 
-Testing stops when the car crashes, gets within 50 pixels of the finish point, or the user clicks **Stop**.
+Testing stops when the car crashes, gets within 50 pixels of the finish point, or the user clicks **Stop**. The elapsed-time stopwatch starts when evaluation launches and freezes when the run ends.
 
 ---
 
@@ -238,6 +247,18 @@ Typical workflow:
 
 The app does not currently validate model shape beyond JSON parsing. Import files should be models exported by this project.
 
+### Included Sample Models
+
+The `sample_models/` folder contains trained models that can be imported directly in Testing Mode. These are intended for the **Grand Prix Challenge** road.
+
+| File | Track | Recorded Time |
+| --- | --- | --- |
+| `sample_models/best.json` | Grand Prix Challenge | 16.38s |
+| `sample_models/best_quick.json` | Grand Prix Challenge | 15.18s |
+| `sample_models/best_fast.json` | Grand Prix Challenge | 15.15s |
+
+To try one, open Testing Mode, click **Import Saved JSON Model**, choose one of the sample JSON files, select **Grand Prix Challenge**, and launch the evaluation.
+
 ---
 
 ## Customizing Tracks
@@ -280,6 +301,7 @@ Guidelines:
 - **Cars stop moving**: stationary cars are intentionally marked damaged after 90 frames to speed up training.
 - **Imported model fails**: make sure the file is valid JSON exported from this project.
 - **No model can be exported yet**: start training first; export becomes available after progress begins.
+- **Visualizer is blank on mobile**: resize the browser or revisit the page; the app recalculates canvas dimensions after layout changes and uses mobile min-heights for visualizer panels.
 
 ---
 
