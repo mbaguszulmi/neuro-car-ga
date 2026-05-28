@@ -115,7 +115,7 @@ class Road {
 
     // Red checkered-like target circle
     ctx.beginPath();
-    ctx.arc(end.x, end.y, 30, 0, Math.PI * 2);
+    ctx.arc(end.x, end.y, 50, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(220, 53, 69, 0.7)";
     ctx.fill();
     ctx.lineWidth = 3;

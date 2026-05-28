@@ -320,7 +320,7 @@ function updateTrainingSimulation() {
     trainingBestCar.y - trainingRoad.endPoint.y
   );
 
-  if (distToFinish < 40) {
+  if (distToFinish < 50) {
     trainingBestCar.finished = true;
     pauseTraining();
     
@@ -522,7 +522,7 @@ function animateTesting() {
       testingCar.x - testingRoad.endPoint.x,
       testingCar.y - testingRoad.endPoint.y
     );
-    if (distToFinish < 40) {
+    if (distToFinish < 50) {
       testStatStatus.textContent = "🏆 SUCCESS! Arrived safely at Point B.";
       testStatStatus.style.color = "#28a745";
       testingCar.finished = true;
